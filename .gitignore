@@ -1,7 +1,15 @@
-# CORVO website repo — publish ONLY the linktree site.
+# CORVO website repo — publish ONLY the site files.
 # The Desktop folder is full of huge photos/videos/scripts that must NOT
 # go to GitHub. Ignore everything, then allow only the site files below.
 /*
 !/index.html
+!/shop.html
+!/categories.html
+!/about.html
+!/contact.html
+!/links.html
+!/assets/
+!/README.md
 !/CNAME
 !/.gitignore
+!/.gitattributes

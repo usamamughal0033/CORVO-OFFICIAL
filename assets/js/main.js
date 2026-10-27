@@ -8,7 +8,9 @@
 
   // ---------- helpers ----------
   const catBySlug = (slug) => CATS.find((c) => c.slug === slug);
-  const price = (n) => (n == null ? "DM for price" : `${C.currency} ${n.toLocaleString("en-PK")}`);
+  // Products without their own price use the store's default price for now.
+  PRODUCTS.forEach((p) => { if (p.price == null) p.price = C.defaultPrice; });
+  const price = (n) => `${C.currency}${n.toLocaleString("en-US")}`;
   const hash = (s) => [...s].reduce((h, c) => (h * 31 + c.charCodeAt(0)) >>> 0, 7);
 
   // Placeholder photos until real product images are added.
@@ -32,14 +34,11 @@
   const setUrl = (u) => { try { history.replaceState(null, "", u); } catch (_) {} };
 
   const waLink = (msg) => `https://wa.me/${C.whatsapp}?text=${encodeURIComponent(msg)}`;
-  const mailLink = (subject, body) =>
-    `mailto:${C.email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
 
   const itemUrl = (p) => new URL(`shop.html?item=${p.id}`, location.href).href;
   const itemMessage = (p) =>
-    `Hi CORVO! I'm interested in this piece:\n\n${p.name} (${p.id})` +
-    (p.price != null ? `\nPrice: ${price(p.price)}` : "") + (p.size ? `\nSize: ${p.size}` : "") +
-    `\n\n${itemUrl(p)}\n\nIs it still available?`;
+    `Hi CORVO! I'd like more photos, a video or details on this piece:\n\n${p.name} (${p.id})` +
+    `\nPrice: ${price(p.price)}` + (p.size ? `\nSize: ${p.size}` : "") + `\n\n${itemUrl(p)}`;
 
   // Split text into letters that roll on hover.
   const split = (el) => {
@@ -69,7 +68,7 @@
   nav.className = "nav";
   nav.innerHTML = NAV.map((n) =>
     n.logo
-      ? `<a href="${n.href}" class="nav-logo ${page === n.key ? "active" : ""}" aria-label="CORVO home"><img class="nav-crow" src="${badge("corvo")}" alt=""><span class="logo">corvo</span></a>`
+      ? `<a href="${n.href}" class="nav-logo ${page === n.key ? "active" : ""}" aria-label="CORVO home"><span class="logo">CORVO</span></a>`
       : `<a href="${n.href}" class="nav-item ${n.align} ${page === n.key ? "active" : ""}">
           <span class="split">${n.label}</span>${n.sub ? `<small>${n.sub}</small>` : ""}</a>`
   ).join("");
@@ -103,6 +102,91 @@
     document.body.classList.add("leaving");
     setTimeout(() => (location.href = url.href), 420);
   });
+
+  // ---------- CART (every page) ----------
+  // One-of-one pieces, so the cart is just a list of product ids kept in this browser.
+  const CART_KEY = "corvo-cart";
+  const cart = {
+    ids: (() => {
+      try { return JSON.parse(localStorage.getItem(CART_KEY)) || []; } catch (_) { return []; }
+    })().filter((id) => PRODUCTS.some((p) => p.id === id && !p.sold)),
+    items() { return this.ids.map((id) => PRODUCTS.find((p) => p.id === id)); },
+    total() { return this.items().reduce((t, p) => t + p.price, 0); },
+    has(id) { return this.ids.includes(id); },
+    save() {
+      try { localStorage.setItem(CART_KEY, JSON.stringify(this.ids)); } catch (_) {}
+      document.dispatchEvent(new CustomEvent("cart"));
+    },
+    add(id) { if (!this.has(id)) { this.ids.push(id); this.save(); } },
+    remove(id) { this.ids = this.ids.filter((x) => x !== id); this.save(); },
+    clear() { this.ids = []; this.save(); },
+  };
+
+  const cartBtn = document.createElement("button");
+  cartBtn.className = "cart-btn";
+  cartBtn.innerHTML = '<span class="split">Cart</span> <b id="cartCount">(0)</b>';
+  split(cartBtn.querySelector(".split"));
+
+  const drawer = document.createElement("aside");
+  drawer.className = "drawer";
+  drawer.hidden = true;
+  drawer.setAttribute("aria-label", "Cart");
+  drawer.innerHTML = `
+    <div class="drawer-bg" data-cart-close></div>
+    <div class="drawer-box">
+      <header class="drawer-head"><h2>Cart <span id="drawerCount"></span></h2>
+        <button data-cart-close><span class="split">Close ✕</span></button></header>
+      <div class="drawer-list" id="drawerList"></div>
+      <footer class="drawer-foot">
+        <p class="drawer-total"><span>Subtotal</span><b id="drawerTotal"></b></p>
+        <p class="m-how">No payment on the website. After you order, we confirm on WhatsApp and share payment and delivery details.</p>
+        <a class="btn solid" href="checkout.html" id="drawerCheckout"><span>Checkout</span><span>→</span></a>
+        <button class="btn" data-cart-close><span>Continue shopping</span><span>←</span></button>
+      </footer>
+    </div>`;
+  drawer.querySelectorAll(".split").forEach(split);
+  if (page !== "checkout") document.body.append(cartBtn);
+  document.body.append(drawer);
+
+  const cartLine = (p) => `
+        <div class="line">
+          <a class="line-img" href="shop.html?item=${p.id}">${img(imagesFor(p)[0], p.name, hash(p.id))}</a>
+          <div class="line-info">
+            <a class="line-name" href="shop.html?item=${p.id}">${p.name}</a>
+            <span class="line-meta">${p.id}${p.size ? ` · ${p.size}` : ""}</span>
+            <button class="line-remove" type="button" data-remove="${p.id}">Remove</button>
+          </div>
+          <b class="line-price">${price(p.price)}</b>
+        </div>`;
+  const renderCart = () => {
+    const items = cart.items();
+    cartBtn.querySelector("b").textContent = `(${items.length})`;
+    $("#drawerCount").textContent = `(${items.length})`;
+    $("#drawerTotal").textContent = price(cart.total());
+    $("#drawerCheckout").classList.toggle("disabled", !items.length);
+    $("#drawerList").innerHTML = items.length ? items.map(cartLine).join("") : '<p class="drawer-empty">Your cart is empty.</p>';
+  };
+  const openCart = () => {
+    drawer.hidden = false;
+    document.documentElement.classList.add("lock");
+    requestAnimationFrame(() => drawer.classList.add("open"));
+  };
+  const closeCart = () => {
+    drawer.classList.remove("open");
+    if (!document.querySelector(".modal.open")) document.documentElement.classList.remove("lock");
+    setTimeout(() => (drawer.hidden = true), 400);
+  };
+  const bump = () => { cartBtn.classList.remove("bump"); void cartBtn.offsetWidth; cartBtn.classList.add("bump"); };
+  cartBtn.addEventListener("click", openCart);
+  drawer.addEventListener("click", (e) => {
+    if (e.target.closest("[data-cart-close]")) closeCart();
+    const rm = e.target.closest("[data-remove]");
+    if (rm) cart.remove(rm.dataset.remove);
+    if (e.target.closest("#drawerCheckout.disabled")) e.preventDefault();
+  });
+  document.addEventListener("keydown", (e) => { if (e.key === "Escape" && !drawer.hidden) closeCart(); });
+  document.addEventListener("cart", renderCart);
+  renderCart();
 
   // ---------- HOME ----------
   if (page === "home") {
@@ -140,7 +224,7 @@
       const box = { left: r.left, top: r.top + scrollY };
       // DROPS and CONTACT sit in the top corners; the nav itself stays centred for the words on the string.
       nav.style.setProperty("--corner-top", `${(mobile() ? 18 : 36) - box.top}px`);
-      (mobile() ? [0.23, 0.5, 0.77] : [0.3, 0.5, 0.7]).forEach((fx, i) => {
+      [0.3, 0.5, 0.7].forEach((fx, i) => {
         const sx = innerWidth * fx;
         const ix = (sx - ox) / s;
         const slope = (stringY(ix + 4) - stringY(ix - 4)) / 8;
@@ -153,7 +237,6 @@
     artImg.addEventListener("load", placeOnString);
     window.addEventListener("resize", placeOnString);
 
-    $("#dmLink").href = waLink("Hi CORVO! I want to see what's new in the latest drop.");
   }
 
   // ---------- CATEGORIES: curved 3D carousel ----------
@@ -281,7 +364,7 @@
             <span class="card-img">${img(imagesFor(p)[0], p.name, hash(p.id))}${p.sold ? '<em class="tag">Sold</em>' : ""}</span>
             <span class="card-cap"><span class="card-name">${p.name}</span>${p.price != null && !p.sold ? `<span class="card-price">${price(p.price)}</span>` : ""}</span>
             <span class="card-meta"><span>${p.id}</span><span>${p.size || ""}</span></span>
-            ${p.sold ? "" : `<a class="quick-buy" href="${waLink(itemMessage(p))}" target="_blank" rel="noopener">Quick Buy</a>`}
+            ${p.sold ? "" : `<button class="quick-buy ${cart.has(p.id) ? "in" : ""}" data-add="${p.id}">${cart.has(p.id) ? "In cart ✓" : "Add to cart"}</button>`}
           </div>`)
         .join("");
       requestAnimationFrame(() => wall.classList.add("in"));
@@ -350,11 +433,13 @@
         $(sel).previousElementSibling.hidden = !v;
       });
       $("#mNote").textContent = p.note || "";
-      const wa = $("#mWa"), mail = $("#mMail");
+      const wa = $("#mWa");
       wa.href = waLink(itemMessage(p));
-      mail.href = mailLink(`Inquiry: ${p.name} (${p.id})`, itemMessage(p));
       modal.classList.toggle("is-sold", !!p.sold);
-      wa.querySelector(".split").textContent = p.sold ? "Ask for similar on WhatsApp" : "Order on WhatsApp";
+      modal.dataset.id = p.id;
+      $("#mAdd").hidden = !!p.sold;
+      syncAdd();
+      wa.querySelector(".split").textContent = p.sold ? "Ask for similar on WhatsApp" : "Ask on WhatsApp";
       split(wa.querySelector(".split"));
       modal.hidden = false;
       document.documentElement.classList.add("lock");
@@ -363,6 +448,28 @@
       u.searchParams.set("item", p.id);
       setUrl(u);
     };
+    // Modal "Add to cart": adds the piece, then becomes "View cart".
+    const syncAdd = () => {
+      const inCart = cart.has(modal.dataset.id);
+      const label = $("#mAdd .split");
+      label.textContent = inCart ? "In cart — view cart" : "Add to cart";
+      split(label);
+      $("#mAdd span:last-child").textContent = inCart ? "→" : "+";
+    };
+    $("#mAdd").addEventListener("click", () => {
+      if (cart.has(modal.dataset.id)) { close(); openCart(); return; }
+      cart.add(modal.dataset.id);
+      bump();
+    });
+    // Keep card buttons and the modal in step with the cart (also when items are removed in the drawer).
+    document.addEventListener("cart", () => {
+      wall.querySelectorAll("[data-add]").forEach((b) => {
+        const inCart = cart.has(b.dataset.add);
+        b.classList.toggle("in", inCart);
+        b.textContent = inCart ? "In cart ✓" : "Add to cart";
+      });
+      if (modal.dataset.id) syncAdd();
+    });
     const close = () => {
       modal.classList.remove("open");
       document.documentElement.classList.remove("lock");
@@ -373,7 +480,12 @@
     };
 
     wall.addEventListener("click", (e) => {
-      if (e.target.closest(".quick-buy")) return; // Quick Buy goes straight to WhatsApp
+      const add = e.target.closest("[data-add]");
+      if (add) { // first tap adds the piece, a second tap opens the cart
+        if (cart.has(add.dataset.add)) openCart();
+        else { cart.add(add.dataset.add); bump(); }
+        return;
+      }
       const card = e.target.closest(".card");
       if (card) open(card.dataset.id);
     });
@@ -409,6 +521,133 @@
         g.style.setProperty("--my", `${e.clientY - r.top}px`);
       })
     );
+  }
+
+  // ---------- CHECKOUT ----------
+  if (page === "checkout") {
+    const form = $("#coForm");
+    const showSummary = () => {
+      const items = cart.items();
+      $("#coGrid").hidden = !items.length;
+      $("#coEmpty").hidden = !!items.length || !$("#coDone").hidden;
+      $("#coItems").innerHTML = items.map(cartLine).join("");
+      $("#coSubtotal").textContent = price(cart.total());
+      $("#coTotal").textContent = price(cart.total());
+      $("#coPlaceTotal").textContent = price(cart.total());
+    };
+    $("#coItems").addEventListener("click", (e) => {
+      const rm = e.target.closest("[data-remove]");
+      if (rm) cart.remove(rm.dataset.remove);
+    });
+    document.addEventListener("cart", showSummary);
+    showSummary();
+    $("#coWa").href = waLink("Hi CORVO! I have a question before I order.");
+
+    const itemLine = (p) => `${p.name} (${p.id})${p.size ? ` — ${p.size}` : ""} — ${price(p.price)}`;
+    const itemList = (items) => items.map((p) => `• ${itemLine(p)}`).join("\n");
+    const orderText = (no, d, items, total) =>
+      `Order ${no}\n${itemList(items)}\nTotal: ${total} + delivery\n\n` +
+      `Name: ${d.name}\nWhatsApp: ${d.phone}\nEmail: ${d.email}\nCity: ${d.city}\nAddress: ${d.address}` +
+      (d.note ? `\nNote: ${d.note}` : "");
+    // 03XX XXXXXXX → 923XXXXXXXXX for wa.me links.
+    const waNumber = (phone) => {
+      const n = phone.replace(/\D/g, "");
+      if (n.startsWith("0")) return `92${n.slice(1)}`;
+      if (n.length === 10 && n.startsWith("3")) return `92${n}`;
+      return n;
+    };
+    // Step 1 of the WhatsApp process: CORVO asks the customer to confirm. The order email gives the
+    // store a one-tap link that opens this message in a chat with the customer.
+    const confirmRequest = (no, d, items, total) =>
+      `Assalam o Alaikum ${d.name}! 👋\n\nThank you for shopping with *CORVO*. We've received your order *${no}*:\n\n` +
+      `${itemList(items)}\n\n*Total:* ${total} + delivery\n*Delivery to:* ${d.address}, ${d.city}\n\n` +
+      `Please reply *YES* to confirm your order and we'll share the payment details with you.\n\n— Team CORVO`;
+    // Sent to the customer's inbox by FormSubmit as soon as the order is placed.
+    const customerEmail = (no, d, items, total) =>
+      `Hi ${d.name},\n\nThank you for your order with CORVO! Here are your order details.\n\n` +
+      `Order: ${no}\n${itemList(items)}\nTotal: ${total} + delivery\nDelivering to: ${d.address}, ${d.city}\n\n` +
+      `What happens next:\n` +
+      `1. We'll message you on WhatsApp (${d.phone}). Reply to confirm your order.\n` +
+      `2. We'll share the payment details on WhatsApp. Send us a screenshot once you've paid.\n` +
+      `3. We verify your payment, confirm your order and share the delivery time.\n\n` +
+      `Want to confirm right away? Message us on WhatsApp: ${C.whatsappDisplay}\n` +
+      `${waLink(`Hi CORVO! I placed order ${no} on the website and I'd like to confirm it.`)}\n\n` +
+      `Thank you for choosing pre-loved.\nTeam CORVO\n${C.instagramHandle}`;
+
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const err = $("#coError");
+      err.hidden = true;
+      form.querySelectorAll(".bad").forEach((el) => el.classList.remove("bad"));
+      const d = Object.fromEntries(new FormData(form));
+      Object.keys(d).forEach((k) => (d[k] = String(d[k]).trim()));
+      // Required fields, a full-length phone number and a valid email.
+      const bad = ["name", "phone", "email", "city", "address"].filter((k) => !d[k]);
+      if (d.phone && d.phone.replace(/\D/g, "").length < 10 && !bad.includes("phone")) bad.push("phone");
+      if (d.email && !form.email.checkValidity()) bad.push("email");
+      if (bad.length) {
+        bad.forEach((k) => form[k].classList.add("bad"));
+        err.textContent = "Please fill in the highlighted fields.";
+        err.hidden = false;
+        form[bad[0]].focus();
+        return;
+      }
+      const items = cart.items();
+      if (!items.length) return showSummary();
+      const no = `CRV-${Date.now().toString(36).toUpperCase().slice(-6)}`;
+      const total = price(cart.total());
+      const text = orderText(no, d, items, total);
+      const btn = $("#coPlace");
+      btn.disabled = true;
+      btn.firstElementChild.textContent = "Placing order…";
+      try {
+        // The order is emailed to the store through FormSubmit (see orderEmail in config.js).
+        const res = await fetch(`https://formsubmit.co/ajax/${C.orderEmail}`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Accept: "application/json" },
+          body: JSON.stringify({
+            _subject: `New CORVO order ${no} — ${total}`,
+            _template: "table",
+            _captcha: "false",
+            _replyto: d.email,
+            _autoresponse: customerEmail(no, d, items, total),
+            Order: no,
+            "Step 1 — ask customer to confirm (tap to open WhatsApp)": `https://wa.me/${waNumber(d.phone)}?text=${encodeURIComponent(confirmRequest(no, d, items, total))}`,
+            Items: items.map(itemLine).join(" | "),
+            Total: `${total} + delivery`,
+            Name: d.name,
+            WhatsApp: d.phone,
+            email: d.email,
+            City: d.city,
+            Address: d.address,
+            Note: d.note || "—",
+          }),
+        });
+        const out = await res.json().catch(() => ({}));
+        if (!res.ok || String(out.success) !== "true") throw new Error(out.message || res.status);
+        cart.clear();
+        $("#coGrid").hidden = true;
+        $("#coEmpty").hidden = true;
+        $("#coDone").hidden = false;
+        $("#coDoneText").textContent = `Your order ${no} has been received. We'll message you on WhatsApp at ${d.phone} to confirm it. You can also confirm right now.`;
+        $("#coStepEmail").textContent = `Confirmation sent to ${d.email}`;
+        $("#coStepEmail").className = "done";
+        $("#coDoneWa").href = waLink(`Hi CORVO! I placed order ${no} on the website and I'd like to confirm it. ✅\n\n${text}`);
+        scrollTo(0, 0);
+      } catch (e) {
+        // FormSubmit refuses pages opened straight from disk, and holds the first order until the store activates it.
+        const why = location.protocol === "file:"
+          ? "Orders can't be sent from a page opened as a file. Open the site through its web address."
+          : /activat/i.test(e.message) ? "Our order inbox is being set up. Please try again in a few minutes."
+          : "We couldn't send your order just now. Please try again.";
+        console.warn("Order not sent:", e.message);
+        err.innerHTML = `${why} Or <a href="${waLink(`Hi CORVO! I'd like to place this order:\n\n${text}`)}" target="_blank" rel="noopener">send it on WhatsApp</a>.`;
+        err.hidden = false;
+      } finally {
+        btn.disabled = false;
+        btn.firstElementChild.textContent = "Place order";
+      }
+    });
   }
 
   // ---------- FOOTER (Home and About) ----------

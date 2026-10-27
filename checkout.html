@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Checkout — CORVO</title>
+<meta name="description" content="CORVO — a thrift community. One-of-one shirts, pants, shoes, belts & caps, jewelry and antique pieces. Order online.">
+<meta name="theme-color" content="#000000">
+<meta name="robots" content="noindex">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' fill='%23000'/%3E%3Ctext x='32' y='45' font-family='Arial Black,Arial' font-weight='900' font-style='italic' font-size='40' fill='%23fff' text-anchor='middle'%3Ec%3C/text%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@600..900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/css/style.css?v=72">
+</head>
+<body data-page="checkout">
+<main class="checkout">
+  <h1 class="co-title">Checkout</h1>
+
+  <div class="co-grid" id="coGrid">
+    <section class="co-summary">
+      <h2>Your order</h2>
+      <div class="co-items" id="coItems"></div>
+      <dl class="co-totals">
+        <dt>Subtotal</dt><dd id="coSubtotal"></dd>
+        <dt>Delivery</dt><dd>Shared on WhatsApp</dd>
+        <dt class="co-total">Total</dt><dd class="co-total" id="coTotal"></dd>
+      </dl>
+    </section>
+
+    <form class="co-form" id="coForm" novalidate>
+      <h2>Your details</h2>
+      <label>Full name *<input name="name" autocomplete="name" required></label>
+      <label>WhatsApp number *<input name="phone" type="tel" autocomplete="tel" inputmode="tel" required placeholder="03XX XXXXXXX"></label>
+      <label>Email * <small>(your order confirmation is sent here)</small><input name="email" type="email" autocomplete="email" required></label>
+      <label>City *<input name="city" autocomplete="address-level2" required></label>
+      <label>Full address *<textarea name="address" autocomplete="street-address" rows="3" required placeholder="House, street, area"></textarea></label>
+      <label>Note <small>(optional)</small><textarea name="note" rows="2" placeholder="Anything we should know"></textarea></label>
+
+      <div class="co-next">
+        <h3>What happens next</h3>
+        <ol>
+          <li>You get an order confirmation by email.</li>
+          <li>We message you on WhatsApp. Reply to confirm your order.</li>
+          <li>We share the payment details there. Send us a screenshot once paid.</li>
+          <li>We verify it, confirm your order and tell you the delivery time.</li>
+        </ol>
+      </div>
+
+      <p class="co-error" id="coError" hidden></p>
+      <button class="btn solid co-place" id="coPlace" type="submit"><span>Place order</span><span id="coPlaceTotal"></span></button>
+      <a class="btn" id="coWa" target="_blank" rel="noopener"><span>Questions? Ask on WhatsApp</span><span>↗</span></a>
+    </form>
+  </div>
+
+  <section class="co-done" id="coDone" hidden>
+    <p class="live"><i></i> Order received</p>
+    <h2>Thank you!</h2>
+    <p id="coDoneText"></p>
+    <ol class="co-steps">
+      <li class="done">Order placed</li>
+      <li id="coStepEmail"></li>
+      <li>Confirm your order on WhatsApp</li>
+      <li>Send payment and share the screenshot</li>
+      <li>We verify and confirm your delivery time</li>
+    </ol>
+    <div class="co-done-actions">
+      <a class="btn solid" id="coDoneWa" target="_blank" rel="noopener"><span>Confirm on WhatsApp now</span><span>↗</span></a>
+      <a class="btn" href="shop.html"><span>Continue shopping</span><span>→</span></a>
+    </div>
+  </section>
+
+  <section class="co-empty" id="coEmpty" hidden>
+    <h2>Your cart is empty</h2>
+    <a class="btn solid" href="shop.html"><span>Shop all drops</span><span>→</span></a>
+  </section>
+</main>
+<script src="assets/js/config.js?v=72"></script>
+<script src="assets/js/products.js?v=72"></script>
+<script src="assets/js/main.js?v=72"></script>
+</body>
+</html>

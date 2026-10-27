@@ -8,7 +8,7 @@
 
   // ---------- helpers ----------
   const catBySlug = (slug) => CATS.find((c) => c.slug === slug);
-  const price = (n) => `${C.currency} ${n.toLocaleString("en-PK")}`;
+  const price = (n) => (n == null ? "DM for price" : `${C.currency} ${n.toLocaleString("en-PK")}`);
   const hash = (s) => [...s].reduce((h, c) => (h * 31 + c.charCodeAt(0)) >>> 0, 7);
 
   // Placeholder photos until real product images are added.
@@ -37,7 +37,9 @@
 
   const itemUrl = (p) => new URL(`shop.html?item=${p.id}`, location.href).href;
   const itemMessage = (p) =>
-    `Hi CORVO! I'm interested in this piece:\n\n${p.name} (${p.id})\nPrice: ${price(p.price)}\nSize: ${p.size}\n\n${itemUrl(p)}\n\nIs it still available?`;
+    `Hi CORVO! I'm interested in this piece:\n\n${p.name} (${p.id})` +
+    (p.price != null ? `\nPrice: ${price(p.price)}` : "") + (p.size ? `\nSize: ${p.size}` : "") +
+    `\n\n${itemUrl(p)}\n\nIs it still available?`;
 
   // Split text into letters that roll on hover.
   const split = (el) => {
@@ -60,11 +62,14 @@
     { href: "contact.html", label: "Contact", sub: `<span>${new Date().getFullYear()}</span>`, key: "contact", align: "end" },
   ];
 
+  // Crow badges in assets/img/logos: corvo.png for the main brand, <slug>.png for each category.
+  const badge = (slug) => `assets/img/logos/${slug}.png`;
+
   const nav = document.createElement("nav");
   nav.className = "nav";
   nav.innerHTML = NAV.map((n) =>
     n.logo
-      ? `<a href="${n.href}" class="nav-logo ${page === n.key ? "active" : ""}" aria-label="CORVO home"><span class="logo">corvo</span></a>`
+      ? `<a href="${n.href}" class="nav-logo ${page === n.key ? "active" : ""}" aria-label="CORVO home"><img class="nav-crow" src="${badge("corvo")}" alt=""><span class="logo">corvo</span></a>`
       : `<a href="${n.href}" class="nav-item ${n.align} ${page === n.key ? "active" : ""}">
           <span class="split">${n.label}</span>${n.sub ? `<small>${n.sub}</small>` : ""}</a>`
   ).join("");
@@ -168,7 +173,9 @@
       const a = document.createElement("a");
       a.className = "panel";
       a.href = `shop.html?c=${cat.slug}`;
-      a.innerHTML = `${img(placeholder(cat.kw, seed, 500, 900), cat.name, seed)}
+      const shots = PRODUCTS.filter((p) => p.cat === cat.slug && p.images.length).map((p) => p.images[0]);
+      const cover = shots.length ? shots[Math.floor(i / CATS.length) % shots.length] : placeholder(cat.kw, seed, 500, 900);
+      a.innerHTML = `${img(cover, cat.name, seed)}
         <span class="cap"><span>${cat.name}</span><span>${String(count).padStart(2, "0")} pcs</span></span>`;
       ring.appendChild(a);
       panels.push({ el: a, cat, i });
@@ -216,7 +223,7 @@
         lastFront = front.cat;
         const idx = CATS.indexOf(front.cat) + 1;
         label.innerHTML = `<span>${String(idx).padStart(2, "0")} / ${String(CATS.length).padStart(2, "0")}</span>
-          <strong>${front.cat.name}</strong><span>${front.cat.tag}</span>`;
+          <img class="badge" src="${badge(front.cat.slug)}" alt=""><strong>${front.cat.name}</strong><span>${front.cat.tag}</span>`;
       }
       requestAnimationFrame(frame);
     };
@@ -225,7 +232,7 @@
 
     stage.addEventListener("wheel", (e) => {
       e.preventDefault();
-      vel += (e.deltaY + e.deltaX) * 0.012;
+      vel -= (e.deltaY + e.deltaX) * 0.012; // scroll down spins the carousel the same way as dragging left
       idle = 0;
     }, { passive: false });
     stage.addEventListener("pointerdown", (e) => {
@@ -263,15 +270,19 @@
     const wall = $("#wall");
     const render = () => {
       const list = active === "all" ? PRODUCTS : PRODUCTS.filter((p) => p.cat === active);
+      const cat = catBySlug(active);
+      $("#shopBadge").src = badge(cat ? cat.slug : "corvo");
+      $("#shopTitle").textContent = cat ? cat.name : "All Drops";
       $("#shopCount").textContent = `${String(list.filter((p) => !p.sold).length).padStart(2, "0")} available`;
       chips.querySelectorAll("button").forEach((b) => b.classList.toggle("on", b.dataset.c === active));
       wall.innerHTML = list
         .map((p, i) => `
-          <button class="card ${p.sold ? "sold" : ""}" data-id="${p.id}" style="--d:${(i % 12) * 45}ms">
+          <div class="card ${p.sold ? "sold" : ""}" data-id="${p.id}" role="button" tabindex="0" style="--d:${(i % 12) * 45}ms">
             <span class="card-img">${img(imagesFor(p)[0], p.name, hash(p.id))}${p.sold ? '<em class="tag">Sold</em>' : ""}</span>
-            <span class="card-cap"><span>${p.name}</span><span>${p.sold ? "—" : price(p.price)}</span></span>
-            <span class="card-meta"><span>${p.id}</span><span>${p.size}</span></span>
-          </button>`)
+            <span class="card-cap"><span class="card-name">${p.name}</span>${p.price != null && !p.sold ? `<span class="card-price">${price(p.price)}</span>` : ""}</span>
+            <span class="card-meta"><span>${p.id}</span><span>${p.size || ""}</span></span>
+            ${p.sold ? "" : `<a class="quick-buy" href="${waLink(itemMessage(p))}" target="_blank" rel="noopener">Quick Buy</a>`}
+          </div>`)
         .join("");
       requestAnimationFrame(() => wall.classList.add("in"));
     };
@@ -288,21 +299,6 @@
       setTimeout(render, 250);
     });
     render();
-
-    // Subtle 3D tilt that follows the mouse, like an archive wall.
-    let tx = 0, ty = 0, cx = 0, cy = 0;
-    window.addEventListener("pointermove", (e) => {
-      if (mobile()) return;
-      tx = (e.clientY / innerHeight - 0.5) * -2;
-      ty = (e.clientX / innerWidth - 0.5) * 2.5;
-    });
-    const tilt = () => {
-      cx += (tx - cx) * 0.06;
-      cy += (ty - cy) * 0.06;
-      wall.style.transform = `rotateX(${cx}deg) rotateY(${cy}deg)`;
-      requestAnimationFrame(tilt);
-    };
-    tilt();
 
     // The middle nav glides into whichever gap between rows is nearest the centre of the screen,
     // so it never sits on top of a photo.
@@ -348,6 +344,11 @@
       $("#mPrice").textContent = p.sold ? "Sold out" : price(p.price);
       $("#mSize").textContent = p.size;
       $("#mCond").textContent = p.condition;
+      // hide spec rows that have no value yet
+      [["#mSize", p.size], ["#mCond", p.condition]].forEach(([sel, v]) => {
+        $(sel).hidden = !v;
+        $(sel).previousElementSibling.hidden = !v;
+      });
       $("#mNote").textContent = p.note || "";
       const wa = $("#mWa"), mail = $("#mMail");
       wa.href = waLink(itemMessage(p));
@@ -372,8 +373,13 @@
     };
 
     wall.addEventListener("click", (e) => {
+      if (e.target.closest(".quick-buy")) return; // Quick Buy goes straight to WhatsApp
       const card = e.target.closest(".card");
       if (card) open(card.dataset.id);
+    });
+    wall.addEventListener("keydown", (e) => {
+      const card = e.target.closest(".card");
+      if (card && e.target === card && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); open(card.dataset.id); }
     });
     $("#mThumbs").addEventListener("click", (e) => {
       const b = e.target.closest("button");
@@ -412,7 +418,7 @@
     document.querySelectorAll(".mail-text").forEach((el) => (el.textContent = C.email));
     document.querySelectorAll("[data-ig]").forEach((a) => (a.href = C.instagram));
     document.querySelectorAll(".year").forEach((el) => (el.textContent = new Date().getFullYear()));
-    $("#footCats").innerHTML = CATS.map((c) => `<a href="shop.html?c=${c.slug}">${c.name}</a>`).join("");
+    $("#footCats").innerHTML = CATS.map((c) => `<a href="shop.html?c=${c.slug}"><img class="badge" src="${badge(c.slug)}" alt="">${c.name}</a>`).join("");
     document.querySelectorAll('.foot-cols a[href^="#"]').forEach((a) =>
       a.addEventListener("click", () => {
         const d = document.querySelector(a.getAttribute("href"));

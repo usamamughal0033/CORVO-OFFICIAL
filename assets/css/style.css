@@ -1,10 +1,13 @@
+@font-face { font-family: "Batica Sans"; src: url("../FONTS/BaticaSans-Regular.otf") format("opentype"); font-weight: 400; font-display: swap; }
 :root {
   --bg: #000;
   --fg: #ffffff;
   --dim: rgba(255, 255, 255, 0.55);
   --line: rgba(255, 255, 255, 0.16);
-  --f: "Archivo", "Helvetica Neue", Arial, sans-serif;
-  --logo: "Unbounded", "Archivo", sans-serif;
+  --f: "Helvetica Neue", Helvetica, Arial, sans-serif;
+  --logo: "Unbounded", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  /* corvo wordmark: Batica Sans (assets/FONTS) */
+  --wordmark: "Batica Sans", "Helvetica Neue", Arial, sans-serif;
   --ease: cubic-bezier(0.7, 0, 0.2, 1);
   --out: cubic-bezier(0.16, 1, 0.3, 1);
 }
@@ -54,11 +57,14 @@ a:hover .ch > span, button:hover .ch > span, .chips .on .ch > span { transform: 
 .nav-item.end { justify-self: end; align-items: flex-end; }
 .nav-item.active .split::before { content: ""; width: 5px; height: 5px; background: var(--fg); border-radius: 50%; align-self: center; margin-right: 6px; }
 .nav-item.end.active .split::before { order: 2; margin: 0 0 0 6px; }
-.nav-logo { justify-self: center; }
+.nav-logo { justify-self: center; display: inline-flex; align-items: center; gap: 8px; }
+.nav-crow { width: 30px; height: 30px; }
+[data-page="home"] .nav-crow { width: 46px; height: 46px; }
+.badge { flex: none; width: 44px; height: 44px; }
 .logo {
-  display: inline-block; font-family: var(--logo); font-stretch: normal; font-weight: 800;
-  font-size: 19px; letter-spacing: -0.05em; text-transform: lowercase;
-  transform: skewX(-14deg); transition: letter-spacing 0.5s var(--ease);
+  display: inline-block; font-family: var(--wordmark); font-stretch: normal; font-weight: 400;
+  font-size: 25px; letter-spacing: -0.05em; text-transform: lowercase;
+  transition: letter-spacing 0.5s var(--ease);
 }
 .nav-logo:hover .logo { letter-spacing: 0.06em; }
 .ready .logo { animation: logoIn 1.2s var(--out) backwards 0.1s; }
@@ -91,24 +97,25 @@ body[data-page="home"] { padding-top: 100vh; }
 [data-page="home"] .nav > a:last-child { position: absolute; right: 36px; top: var(--corner-top, 0); }
 [data-page="home"] .nav-logo { position: absolute; left: 50%; top: var(--corner-top, 0); transform: translateX(-50%); }
 .nav .on-string { position: absolute; transform-origin: 50% 100%; transform: translate(-50%, calc(-100% - 6px)) rotate(var(--tilt, 0deg)); }
-/* Words on the string read as links: no box, a soft glow that breathes, an arrow that nudges. */
+/* Words on the string are "calls" on the shoe-phone line: each sits on a small bead on the string
+   that rings out (a soft ripple), one after another. Hover lifts the word and lights the bead. */
 [data-page="home"] .nav { mix-blend-mode: normal; }
-[data-page="home"] .nav .on-string {
-  flex-direction: row; align-items: center; gap: 7px; padding: 4px 2px; font-size: 12px;
-  text-shadow: 0 0 10px rgba(255, 255, 255, 0.25);
-  animation: linkGlow 3.2s ease-in-out infinite;
-}
+[data-page="home"] .nav .on-string { padding: 4px 2px; font-size: 12px; text-shadow: 0 0 10px rgba(255, 255, 255, 0.25); }
+[data-page="home"] .nav .on-string .split { transition: transform .45s var(--out); }
+[data-page="home"] .nav .on-string::before,
 [data-page="home"] .nav .on-string::after {
-  content: "\2197"; font-size: 11px; opacity: .75; transition: transform .45s var(--out), opacity .3s;
-  animation: nudge 3.2s ease-in-out infinite;
+  content: ""; position: absolute; left: 50%; bottom: -9px; width: 7px; height: 7px; margin-left: -3.5px;
+  border-radius: 50%; pointer-events: none;
 }
-[data-page="home"] .nav .on-string:nth-child(4), [data-page="home"] .nav .on-string:nth-child(4)::after { animation-delay: .5s; }
-[data-page="home"] .nav .on-string:nth-child(5), [data-page="home"] .nav .on-string:nth-child(5)::after { animation-delay: 1s; }
-[data-page="home"] .nav .on-string:hover { animation: none; text-shadow: 0 0 16px rgba(255, 255, 255, 0.6); }
-[data-page="home"] .nav .on-string:hover::after { animation: none; opacity: 1; transform: translate(3px, -3px); }
-@keyframes linkGlow { 50% { text-shadow: 0 0 14px rgba(255, 255, 255, 0.5); } }
-@keyframes nudge { 0%, 70%, 100% { transform: none; } 82% { transform: translate(2px, -2px); } }
-[data-page="home"] .nav-logo .logo { font-size: 30px; }
+[data-page="home"] .nav .on-string::after { background: #fff; box-shadow: 0 0 8px rgba(255, 255, 255, 0.7); transition: box-shadow .35s, transform .35s; }
+[data-page="home"] .nav .on-string::before { border: 1px solid rgba(255, 255, 255, 0.7); animation: ring 2.6s ease-out infinite; }
+[data-page="home"] .nav .on-string:nth-child(4)::before { animation-delay: .65s; }
+[data-page="home"] .nav .on-string:nth-child(5)::before { animation-delay: 1.3s; }
+[data-page="home"] .nav .on-string:hover .split { transform: translateY(-4px); }
+[data-page="home"] .nav .on-string:hover { text-shadow: 0 0 16px rgba(255, 255, 255, 0.6); }
+[data-page="home"] .nav .on-string:hover::after { transform: scale(1.35); box-shadow: 0 0 14px rgba(255, 255, 255, 1); }
+@keyframes ring { 0% { transform: scale(1); opacity: .9; } 70%, 100% { transform: scale(3.6); opacity: 0; } }
+[data-page="home"] .nav-logo .logo { font-size: 38px; }
 .home-corner { position: fixed; z-index: 40; font-size: 14px; line-height: 1.5; mix-blend-mode: difference; }
 .home-corner.br { bottom: 36px; right: 36px; text-align: right; text-transform: none; }
 /* Home corners (DROPS, CONTACT, shop links) share one plain sans-serif. */
@@ -134,6 +141,8 @@ body[data-page="home"] { padding-top: 100vh; }
   align-items: baseline; font-size: 13px; pointer-events: none; mix-blend-mode: difference;
 }
 .ring-label strong { font-weight: 400; font-size: 20px; }
+.ring-label { align-items: center; }
+.ring-label .badge { width: 48px; height: 48px; margin-right: -16px; }
 .hint { position: fixed; top: 18px; left: 0; right: 0; text-align: center; font-size: 12px; z-index: 40; pointer-events: none; }
 
 /* On the categories page the main nav sits above the carousel instead of across the photos. */
@@ -143,6 +152,7 @@ body[data-page="home"] { padding-top: 100vh; }
 .shop { --gap: 64px; padding: 18px 14px 120px; }
 .shop-top { display: flex; align-items: center; gap: 34px; padding: 4px 0 16px; border-bottom: 1px solid var(--line); }
 .shop-title { font-family: var(--logo); font-stretch: normal; font-weight: 800; font-size: 20px; line-height: 1; letter-spacing: -0.02em; text-transform: uppercase; white-space: nowrap; }
+.shop-title { display: inline-flex; align-items: center; gap: 10px; }
 .ready .shop-title { animation: fadeUp 1.1s var(--out) backwards 0.2s; }
 .chips { display: flex; flex-wrap: wrap; gap: 6px 24px; font-size: 12px; }
 .chips button { position: relative; padding: 4px 0; }
@@ -150,11 +160,11 @@ body[data-page="home"] { padding-top: 100vh; }
 .chips button:hover::after, .chips button.on::after { transform: scaleX(1); }
 .shop-count { margin-left: auto; font-size: 11px; white-space: nowrap; }
 
-.wall-wrap { perspective: 1400px; margin-top: var(--gap); }
+.wall-wrap { margin-top: var(--gap); }
 .wall {
   display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: var(--gap) 20px;
   min-width: 0;
-  transform-style: preserve-3d; will-change: transform;
+
 }
 .card { min-width: 0; text-align: left; display: flex; flex-direction: column; gap: 8px; font-size: 11px; opacity: 0; transform: translateY(24px); transition: opacity .7s var(--out), transform .7s var(--out); transition-delay: var(--d); }
 .wall.in .card { opacity: 1; transform: none; }
@@ -162,8 +172,20 @@ body[data-page="home"] { padding-top: 100vh; }
 .card-img img { width: 100%; height: 100%; object-fit: cover; transform: scale(1.02); transition: transform 1s var(--out); }
 .card:hover .card-img img { transform: scale(1.08); }
 .card-cap, .card-meta { display: flex; justify-content: space-between; gap: 10px; }
-.card-cap span:first-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.card-cap span:last-child { white-space: nowrap; }
+.card-cap span:first-child { line-height: 1.35; }  /* full product name, wraps onto a second line if needed */
+.card { cursor: pointer; }
+.card:focus-visible { outline: 1px solid var(--fg); outline-offset: 4px; }
+/* Card type: name = Helvetica Neue Regular, spaced; price = Regular; Quick Buy = Bold, spaced. */
+.card-name { font-family: var(--f); font-weight: 400; letter-spacing: 0.08em; }
+.card-price, .m-price { font-family: var(--f); font-weight: 400; letter-spacing: 0; }
+.quick-buy {
+  align-self: flex-start; margin-top: 6px; padding: 9px 14px; border: 1px solid var(--fg);
+  font-family: var(--f); font-weight: 700; font-size: 10.5px; letter-spacing: 0.14em; text-transform: uppercase;
+  transition: background .3s, color .3s;
+}
+.quick-buy:hover { background: var(--fg); color: var(--bg); }
+.card-cap .card-price { white-space: nowrap; }
+.card-cap .card-name { min-width: 0; overflow-wrap: anywhere; }
 .card-meta { font-size: 9.5px; }
 .card.sold .card-cap span:first-child { text-decoration: line-through; }
 .tag { position: absolute; top: 8px; left: 8px; font-style: normal; font-size: 9px; background: var(--fg); color: var(--bg); padding: 3px 6px; }
@@ -272,8 +294,10 @@ body[data-page="home"] { padding-top: 100vh; }
 .site-foot { padding: 0; }
 .foot-top { display: flex; justify-content: space-between; align-items: center; gap: 20px; padding-bottom: 26px; }
 .foot-logo { display: inline-flex; align-items: center; gap: 12px; }
-.foot-logo img { width: 46px; height: 46px; }
-.foot-logo span { font-family: var(--logo); font-stretch: normal; font-weight: 800; font-size: 34px; letter-spacing: -0.03em; }
+.foot-logo img { width: 64px; height: 64px; }
+#footCats a { display: inline-flex; align-items: center; gap: 8px; }
+#footCats .badge { width: 26px; height: 26px; }
+.foot-logo span { font-family: var(--wordmark); font-stretch: normal; font-weight: 400; font-size: 44px; letter-spacing: -0.03em; }
 .foot-top p { font-size: 11px; }
 .foot-cols { --fg-gap: 40px; display: grid; grid-template-columns: minmax(0, 1.5fr) repeat(3, minmax(0, 1fr)) repeat(2, minmax(0, 1.3fr)); gap: var(--fg-gap); padding: 30px 0 0; align-items: start; }
 .foot-cols a > span:last-child { min-width: 0; overflow-wrap: anywhere; }
@@ -320,12 +344,12 @@ body[data-page="home"] { padding-top: 100vh; }
   .nav { padding: 0 18px; }
   .home-corner.br { right: 18px; bottom: 18px; }
   [data-page="home"] .nav > a:first-child { left: 18px; }
-  [data-page="home"] .nav .on-string { padding: 4px 2px; gap: 5px; font-size: 10px; }
-  [data-page="home"] .nav-logo .logo { font-size: 22px; }
+  [data-page="home"] .nav .on-string { font-size: 10px; }
+  [data-page="home"] .nav-logo .logo { font-size: 28px; }
   [data-page="home"] .nav > a:last-child { right: 18px; }
   .nav-item { font-size: 9.5px; font-stretch: 100%; }
   .nav-item small { font-size: 8px; }
-  .logo { font-size: 16px; }
+  .logo { font-size: 21px; }
   .nav-item.active .split::before { display: none; }
   .home-corner { font-size: 12px; }
   .wall { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 34px 12px; }

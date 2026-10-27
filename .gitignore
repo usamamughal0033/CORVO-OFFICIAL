@@ -13,3 +13,9 @@
 !/CNAME
 !/.gitignore
 !/.gitattributes
+# Raw photo/video library: never upload (11 GB). Only the web-sized copies in assets/img/ are published.
+/assets/MAIN DATA/
+# Source logo JPEGs and font zips: the site uses the copies in assets/img/logos and assets/FONTS/*.otf
+/assets/LOGOS/
+/assets/FONTS/*.zip
+/assets/FONTS/Tondo*
